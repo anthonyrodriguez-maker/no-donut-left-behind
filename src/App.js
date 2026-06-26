@@ -104,8 +104,8 @@ function MissPanel({ store, onClose }) {
         {/* Coaching line */}
         <div style={{background:"#FFF0F0",border:"1.5px solid #E24B4A",borderRadius:9,padding:"12px 14px",marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:700,color:"#7A1F1F",marginBottom:4}}>What closing the gap looks like</div>
-          <div style={{fontSize:13,color:"#333",lineHeight:1.7}}>
-            This store needed <strong>{Math.ceil(extraPerHr)} more donut{Math.ceil(extraPerHr)!==1?"s":""} per operating hour</strong> — roughly <strong>1 extra donut every {oneEvery} hours</strong> — to hit goal. That's one more suggestive sell conversation per shift.
+          <div style={{fontSize:15,color:"#333",lineHeight:1.7}}>
+            This store needed <strong>{Math.ceil(Number(perDay))} more donuts per day</strong> to hit goal — that's <strong>{Math.ceil(Number(mornPerDay))} in Morning</strong> and <strong>{Math.ceil(Number(rodPerDay))} in ROD</strong>. One more suggestive sell per hour gets this done.
           </div>
         </div>
 
