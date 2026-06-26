@@ -14,8 +14,8 @@ const MORNING_HRS_DAY = 5;
 const ROD_HRS_DAY = 13.5;
 const TOTAL_HRS_DAY = 18.5;
 const DAYS = 7;
-const MORNING_PCT = MORNING_HRS_DAY / TOTAL_HRS_DAY;
-const ROD_PCT = ROD_HRS_DAY / TOTAL_HRS_DAY;
+const MORNING_PCT = 0.589; // Based on actual TX transaction split (58.9% morning)
+const ROD_PCT = 0.411; // Based on actual TX transaction split (41.1% ROD)
 
 const NET_COLORS = { GRG:"#EC762F", VRG:"#2C6FAC", OMALA:"#1D9E75" };
 
@@ -104,8 +104,8 @@ function MissPanel({ store, onClose }) {
         {/* Coaching line */}
         <div style={{background:"#FFF0F0",border:"1.5px solid #E24B4A",borderRadius:9,padding:"12px 14px",marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:700,color:"#7A1F1F",marginBottom:4}}>What closing the gap looks like</div>
-          <div style={{fontSize:13,color:"#333",lineHeight:1.7}}>
-            This store needed <strong>{Math.ceil(extraPerHr)} more donut{Math.ceil(extraPerHr)!==1?"s":""} per operating hour</strong> — roughly <strong>1 extra donut every {oneEvery} hours</strong> — to hit goal. That's one more suggestive sell conversation per shift.
+          <div style={{fontSize:15,color:"#333",lineHeight:1.7}}>
+            This store needed <strong>{Math.ceil(Number(perDay))} more donuts per day</strong> to hit goal — that's <strong>{Math.ceil(Number(mornPerDay))} in Morning</strong> and <strong>{Math.ceil(Number(rodPerDay))} in ROD</strong>. One more suggestive sell per hour gets this done.
           </div>
         </div>
 
@@ -177,7 +177,7 @@ function MissPanel({ store, onClose }) {
         </div>
 
         <div style={{background:"#f7f7f7",borderRadius:8,padding:"10px 12px",fontSize:11,color:"#888",lineHeight:1.6}}>
-          Daypart estimates are proportional to operating hours (Morning 27%, ROD 73%). Use BI Daypart Snapshot for store-specific actuals.
+          Daypart estimates based on actual Texas transaction split (Morning 58.9%, ROD 41.1% — 5-wk avg across all TX stores). Use BI Daypart Snapshot for store-specific actuals.
         </div>
       </div>
     </div>
