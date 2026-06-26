@@ -14,8 +14,8 @@ const MORNING_HRS_DAY = 5;
 const ROD_HRS_DAY = 13.5;
 const TOTAL_HRS_DAY = 18.5;
 const DAYS = 7;
-const MORNING_PCT = MORNING_HRS_DAY / TOTAL_HRS_DAY;
-const ROD_PCT = ROD_HRS_DAY / TOTAL_HRS_DAY;
+const MORNING_PCT = 0.589; // Based on actual TX transaction split (58.9% morning)
+const ROD_PCT = 0.411; // Based on actual TX transaction split (41.1% ROD)
 
 const NET_COLORS = { GRG:"#EC762F", VRG:"#2C6FAC", OMALA:"#1D9E75" };
 
@@ -177,7 +177,7 @@ function MissPanel({ store, onClose }) {
         </div>
 
         <div style={{background:"#f7f7f7",borderRadius:8,padding:"10px 12px",fontSize:11,color:"#888",lineHeight:1.6}}>
-          Daypart estimates are proportional to operating hours (Morning 27%, ROD 73%). Use BI Daypart Snapshot for store-specific actuals.
+          Daypart estimates based on actual Texas transaction split (Morning 58.9%, ROD 41.1% — 5-wk avg across all TX stores). Use BI Daypart Snapshot for store-specific actuals.
         </div>
       </div>
     </div>
