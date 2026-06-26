@@ -10,6 +10,17 @@ const WEEKLY_RESULTS = [
   { label:"Week ending 6/20", data:{"301255":1201,"346510":1408,"350093":747,"350918":1131,"350940":910,"351985":1109,"352495":838,"353103":989,"353792":767,"355059":659,"355680":1008,"355681":696,"356104":682,"356733":919,"357201":1367,"357430":1025,"357649":1011,"357958":728,"358035":745,"358705":1511,"358790":1324,"358894":1426,"358909":894,"359470":1110,"359496":873,"359644":965,"359888":790,"362644":872,"362967":998,"363024":805,"363236":800,"363238":798,"363902":1122} },
 ];
 
+// Hours per week: Morning 5am-10am = 5hrs/day x 7 = 35hrs
+// ROD 3:30am-5am (1.5hrs) + 10am-10pm (12hrs) = 13.5hrs/day x 7 = 94.5hrs
+// Total = 18.5hrs/day x 7 = 129.5hrs/week
+const MORNING_HRS_DAY = 5;
+const ROD_HRS_DAY = 13.5;
+const TOTAL_HRS_DAY = 18.5;
+const DAYS = 7;
+// Morning is ~27% of operating hours, ROD ~73%
+const MORNING_PCT = MORNING_HRS_DAY / TOTAL_HRS_DAY;
+const ROD_PCT = ROD_HRS_DAY / TOTAL_HRS_DAY;
+
 const NET_COLORS = { GRG:"#EC762F", VRG:"#2C6FAC", OMALA:"#1D9E75" };
 
 function computeGoals(weekIdx) {
@@ -50,12 +61,153 @@ const sel = {
   backgroundRepeat:"no-repeat", backgroundPosition:"right 10px center", paddingRight:32
 };
 
+function MissBreakdown({ store, onClose }) {
+  const miss = store.g5 - Number(store.val);
+  const perDay   = (miss / DAYS).toFixed(1);
+  const perHr    = (miss / (TOTAL_HRS_DAY * DAYS)).toFixed(2);
+  const mornMiss = Math.round(miss * MORNING_PCT);
+  const rodMiss  = Math.round(miss * ROD_PCT);
+  const mornPerDay = (mornMiss / DAYS).toFixed(1);
+  const rodPerDay  = (rodMiss / DAYS).toFixed(1);
+  const mornPerHr  = (mornMiss / (MORNING_HRS_DAY * DAYS)).toFixed(2);
+  const rodPerHr   = (rodMiss / (ROD_HRS_DAY * DAYS)).toFixed(2);
+  // How many extra donuts per hour to close the gap
+  const extraPerHrToClose = (miss / (TOTAL_HRS_DAY * DAYS)).toFixed(2);
+  // Framed as: 1 extra donut every X hours
+  const oneDonutEvery = (1 / Number(extraPerHrToClose)).toFixed(1);
+
+  const nc = NET_COLORS[store.network];
+
+  return (
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#fff",borderRadius:16,maxWidth:520,width:"100%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 16px 48px rgba(0,0,0,0.25)"}}>
+
+        {/* Modal header */}
+        <div style={{background:`linear-gradient(135deg, ${nc} 0%, #1a1a1a 100%)`,borderRadius:"16px 16px 0 0",padding:"20px 24px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"rgba(255,255,255,0.6)",textTransform:"uppercase",marginBottom:4}}>{store.network} · Miss Breakdown</div>
+              <div style={{fontSize:18,fontWeight:900,color:"#fff",lineHeight:1.2}}>{store.short}</div>
+            </div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700,fontSize:13}}>✕ Close</button>
+          </div>
+          <div style={{display:"flex",gap:16,marginTop:16}}>
+            <div style={{background:"rgba(0,0,0,0.25)",borderRadius:8,padding:"8px 14px"}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Actual</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#fff"}}>{Number(store.val).toLocaleString()}</div>
+            </div>
+            <div style={{background:"rgba(0,0,0,0.25)",borderRadius:8,padding:"8px 14px"}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Goal (+5%)</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#fff"}}>{store.g5.toLocaleString()}</div>
+            </div>
+            <div style={{background:"rgba(226,75,74,0.4)",border:"1.5px solid #E24B4A",borderRadius:8,padding:"8px 14px"}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Total Miss</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#ff9999"}}>−{miss.toLocaleString()} units</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:"20px 24px"}}>
+
+          {/* The simple coaching line */}
+          <div style={{background:"#FFF0F0",border:"1.5px solid #E24B4A",borderRadius:10,padding:"14px 16px",marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#7A1F1F",marginBottom:4}}>What closing the gap looks like</div>
+            <div style={{fontSize:15,color:"#333",lineHeight:1.7}}>
+              This store needed <strong>{Math.ceil(Number(extraPerHrToClose))} more donut{Math.ceil(Number(extraPerHrToClose))>1?"s":""} per hour</strong> across all operating hours — or roughly <strong>1 extra donut every {oneDonutEvery} hours</strong> — to hit goal. That's one suggestive sell conversation per shift.
+            </div>
+          </div>
+
+          {/* Total breakdown */}
+          <div style={{fontSize:13,fontWeight:700,color:"#333",marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Total Miss Breakdown</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+            {[
+              {label:"Per Day",val:`−${perDay}`,sub:"units/day · 7 days"},
+              {label:"Per Hour",val:`−${perHr}`,sub:"units/hr · 129.5 hrs"},
+            ].map(c=>(
+              <div key={c.label} style={{background:"#FFF0F0",border:"1px solid #fcc",borderRadius:10,padding:"12px 14px"}}>
+                <div style={{fontSize:11,color:"#999",marginBottom:4}}>{c.label}</div>
+                <div style={{fontSize:22,fontWeight:900,color:"#E24B4A"}}>{c.val}</div>
+                <div style={{fontSize:11,color:"#bbb",marginTop:2}}>{c.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Daypart breakdown */}
+          <div style={{fontSize:13,fontWeight:700,color:"#333",marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Miss by Daypart</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+
+            {/* Morning */}
+            <div style={{background:"#FFF9E6",border:"1.5px solid #F4C430",borderRadius:10,padding:"14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#7A5800"}}>☀️ MORNING</div>
+                <div style={{fontSize:10,color:"#999"}}>5am–10am</div>
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:"#7A5800"}}>−{mornMiss}</div>
+              <div style={{fontSize:11,color:"#999",marginTop:2}}>est. units short this daypart</div>
+              <div style={{borderTop:"1px solid #F4C43055",marginTop:10,paddingTop:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:"#888"}}>Per day</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#7A5800"}}>−{mornPerDay} units</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:"#888"}}>Per hour</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#7A5800"}}>−{mornPerHr} units</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:11,color:"#888"}}>Hrs/week</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#7A5800"}}>35 hrs</span>
+                </div>
+              </div>
+              <div style={{background:"#EC762F22",borderRadius:6,padding:"8px 10px",marginTop:10,fontSize:11,color:"#7A5800",lineHeight:1.5}}>
+                <strong>Coaching focus:</strong> Full case at open, offer to every guest 5–10am. This is where donut culture starts.
+              </div>
+            </div>
+
+            {/* ROD */}
+            <div style={{background:"#EEF4FF",border:"1.5px solid #2C6FAC",borderRadius:10,padding:"14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#185FA5"}}>🌙 ROD</div>
+                <div style={{fontSize:10,color:"#999"}}>3:30am–5am · 10am–10pm</div>
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:"#185FA5"}}>−{rodMiss}</div>
+              <div style={{fontSize:11,color:"#999",marginTop:2}}>est. units short this daypart</div>
+              <div style={{borderTop:"1px solid #2C6FAC55",marginTop:10,paddingTop:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:"#888"}}>Per day</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#185FA5"}}>−{rodPerDay} units</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:"#888"}}>Per hour</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#185FA5"}}>−{rodPerHr} units</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span style={{fontSize:11,color:"#888"}}>Hrs/week</span>
+                  <span style={{fontSize:12,fontWeight:700,color:"#185FA5"}}>94.5 hrs</span>
+                </div>
+              </div>
+              <div style={{background:"#2C6FAC22",borderRadius:6,padding:"8px 10px",marginTop:10,fontSize:11,color:"#185FA5",lineHeight:1.5}}>
+                <strong>Coaching focus:</strong> Push BOGO in last 6 hrs. Suggestive sell on every transaction. Case must stay stocked.
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom line */}
+          <div style={{background:"#f5f5f5",borderRadius:10,padding:"14px 16px",fontSize:12,color:"#555",lineHeight:1.7}}>
+            <strong style={{color:"#333"}}>Note:</strong> Daypart unit estimates are proportional to operating hours (Morning = 27%, ROD = 73%). Actual daypart split may vary by store traffic patterns. Use BI Daypart Snapshot for store-specific breakdown.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const last = WEEKLY_RESULTS.length - 1;
   const [weekIdx, setWeekIdx]     = useState(last);
   const [posterIdx, setPosterIdx] = useState(last);
   const [view, setView]           = useState("leaderboard");
   const [network, setNetwork]     = useState("ALL");
+  const [selected, setSelected]   = useState(null);
 
   const goals  = useMemo(() => computeGoals(weekIdx),   [weekIdx]);
   const pGoals = useMemo(() => computeGoals(posterIdx), [posterIdx]);
@@ -88,6 +240,8 @@ export default function App() {
 
   return (
     <div style={{fontFamily:"Arial,sans-serif",maxWidth:900,margin:"0 auto",paddingBottom:48}}>
+
+      {selected && <MissBreakdown store={selected} onClose={()=>setSelected(null)} />}
 
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#EC762F 0%,#C8550A 100%)",padding:"24px 28px 22px",borderRadius:"0 0 16px 16px",marginBottom:24}}>
@@ -124,16 +278,23 @@ export default function App() {
               ))}
             </div>
           </div>
+          <div style={{fontSize:12,color:"#aaa",marginBottom:12}}>Tap a store marked ❌ Miss or 🔶 Close to see the gap breakdown.</div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {sorted.map((s,idx)=>{
               const m=STATUS_META[s.status];
+              const clickable = s.status==="miss"||s.status==="close";
               return (
-                <div key={s.store_num} style={{display:"flex",alignItems:"center",gap:10,background:m.bg,border:`1.5px solid ${m.border}`,borderRadius:10,padding:"10px 14px"}}>
+                <div key={s.store_num}
+                  onClick={()=>clickable && setSelected(s)}
+                  style={{display:"flex",alignItems:"center",gap:10,background:m.bg,border:`1.5px solid ${m.border}`,borderRadius:10,padding:"10px 14px",cursor:clickable?"pointer":"default",transition:"transform 0.1s",}}
+                  onMouseEnter={e=>{if(clickable)e.currentTarget.style.transform="scale(1.01)"}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)"}}
+                >
                   <div style={{width:28,textAlign:"center",fontSize:13,fontWeight:900,color:"#bbb",flexShrink:0}}>{s.status!=="pending"?`#${idx+1}`:"—"}</div>
                   <div style={{width:10,height:10,borderRadius:"50%",background:NET_COLORS[s.network],flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:13,color:"#222",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.short}</div>
-                    <div style={{fontSize:11,color:"#888",marginTop:1}}>{s.network} · 5wk avg: {s.avg.toLocaleString()} · Goal: {s.g5.toLocaleString()}–{s.g10.toLocaleString()}</div>
+                    <div style={{fontSize:11,color:"#888",marginTop:1}}>{s.network} · 5wk avg: {s.avg.toLocaleString()} · Goal: {s.g5.toLocaleString()}–{s.g10.toLocaleString()}{clickable?" · tap for breakdown":""}</div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0,minWidth:60}}>
                     <div style={{fontSize:18,fontWeight:900,color:m.text}}>{s.val?Number(s.val).toLocaleString():"—"}</div>
@@ -156,7 +317,6 @@ export default function App() {
               {WEEKLY_RESULTS.map((w,i)=><option key={i} value={i}>{w.label}</option>)}
             </select>
           </div>
-
           <div style={{background:"linear-gradient(160deg,#1a0a00 0%,#3D1A00 55%,#EC762F 100%)",borderRadius:16,padding:"36px 28px 32px",color:"#fff",boxShadow:"0 8px 32px rgba(0,0,0,0.25)"}}>
             <div style={{textAlign:"center",marginBottom:28}}>
               <div style={{fontSize:44,marginBottom:6}}>🍩</div>
@@ -164,56 +324,42 @@ export default function App() {
               <div style={{fontSize:28,fontWeight:900,lineHeight:1.1}}>{WEEKLY_RESULTS[posterIdx].label} — Champions</div>
               <div style={{fontSize:13,color:"rgba(255,255,255,0.6)",marginTop:6}}>Stores hitting their rolling donut unit goals · Gratitude Restaurant Group</div>
             </div>
-
-            {posterStores.length===0 ? (
+            {posterStores.length===0?(
               <div style={{textAlign:"center",color:"rgba(255,255,255,0.4)",padding:"32px 0",fontSize:14}}>No results available for this week yet.</div>
             ):(
               <>
-                {/* GOLD */}
                 {posterStores.filter(s=>s.status==="gold").length>0&&(
                   <div style={{marginBottom:24}}>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:3,color:"#F4C430",textTransform:"uppercase",marginBottom:12}}>🏆 Gold Tier — +10% or better</div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:8}}>
                       {posterStores.filter(s=>s.status==="gold").map(s=>(
-                        <div key={s.store_num} style={{background:"rgba(244,196,48,0.15)",border:"1.5px solid #F4C430",borderRadius:10,padding:"14px 14px"}}>
+                        <div key={s.store_num} style={{background:"rgba(244,196,48,0.15)",border:"1.5px solid #F4C430",borderRadius:10,padding:"14px"}}>
                           <div style={{fontSize:13,fontWeight:800,color:"#F4C430",lineHeight:1.3}}>{s.short}</div>
                           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{s.network}</div>
-                          <div style={{fontSize:24,fontWeight:900,color:"#fff",marginTop:8,lineHeight:1}}>
-                            {Number(s.val).toLocaleString()}
-                            <span style={{fontSize:11,color:"#F4C430",marginLeft:4}}>units</span>
-                          </div>
+                          <div style={{fontSize:24,fontWeight:900,color:"#fff",marginTop:8,lineHeight:1}}>{Number(s.val).toLocaleString()}<span style={{fontSize:11,color:"#F4C430",marginLeft:4}}>units</span></div>
                           <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(244,196,48,0.3)"}}>
                             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Goal (+5%): <span style={{color:"#F4C430",fontWeight:700}}>{s.g5.toLocaleString()}</span></div>
                             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Gold (+10%): <span style={{color:"#F4C430",fontWeight:700}}>{s.g10.toLocaleString()}</span></div>
-                            <div style={{fontSize:11,color:"#F4C430",fontWeight:700,marginTop:4}}>
-                              Beat goal by {(Number(s.val)-s.g10).toLocaleString()} units ✓
-                            </div>
+                            <div style={{fontSize:11,color:"#F4C430",fontWeight:700,marginTop:4}}>Beat goal by {(Number(s.val)-s.g10).toLocaleString()} units ✓</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* GREEN */}
                 {posterStores.filter(s=>s.status==="green").length>0&&(
                   <div>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:3,color:"#7AE6B0",textTransform:"uppercase",marginBottom:12}}>✅ Goal Tier — +5% or better</div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:8}}>
                       {posterStores.filter(s=>s.status==="green").map(s=>(
-                        <div key={s.store_num} style={{background:"rgba(29,158,117,0.15)",border:"1.5px solid #1D9E75",borderRadius:10,padding:"14px 14px"}}>
+                        <div key={s.store_num} style={{background:"rgba(29,158,117,0.15)",border:"1.5px solid #1D9E75",borderRadius:10,padding:"14px"}}>
                           <div style={{fontSize:13,fontWeight:800,color:"#7AE6B0",lineHeight:1.3}}>{s.short}</div>
                           <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}}>{s.network}</div>
-                          <div style={{fontSize:22,fontWeight:900,color:"#fff",marginTop:8,lineHeight:1}}>
-                            {Number(s.val).toLocaleString()}
-                            <span style={{fontSize:11,color:"#7AE6B0",marginLeft:4}}>units</span>
-                          </div>
+                          <div style={{fontSize:22,fontWeight:900,color:"#fff",marginTop:8,lineHeight:1}}>{Number(s.val).toLocaleString()}<span style={{fontSize:11,color:"#7AE6B0",marginLeft:4}}>units</span></div>
                           <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(29,158,117,0.3)"}}>
                             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Goal (+5%): <span style={{color:"#7AE6B0",fontWeight:700}}>{s.g5.toLocaleString()}</span></div>
                             <div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Gold (+10%): <span style={{color:"rgba(255,255,255,0.4)",fontWeight:700}}>{s.g10.toLocaleString()}</span></div>
-                            <div style={{fontSize:11,color:"#7AE6B0",fontWeight:700,marginTop:4}}>
-                              Beat goal by {(Number(s.val)-s.g5).toLocaleString()} units ✓
-                            </div>
+                            <div style={{fontSize:11,color:"#7AE6B0",fontWeight:700,marginTop:4}}>Beat goal by {(Number(s.val)-s.g5).toLocaleString()} units ✓</div>
                           </div>
                         </div>
                       ))}
